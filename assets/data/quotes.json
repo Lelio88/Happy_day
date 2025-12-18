@@ -1,0 +1,18 @@
+{
+    "Asu": [
+        {"file": "Silver1.mp3", "speaker": "Silver"},
+        {"file": "Lpk1.mp3", "speaker": "Lpk"},
+        {"file": "Lelio1.mp3", "speaker": "Lelio"},
+        {"file": "Silver2.mp3", "speaker": "Silver"},
+        {"file": "Lpk2.mp3", "speaker": "Lpk"},
+        {"file": "Lelio2.mp3", "speaker": "Lelio"}
+    ],
+    "Lpk": [
+        {"file": "Lpk1.mp3", "speaker": "Lpk"},
+        {"file": "Lelio1.mp3", "speaker": "Lelio"},
+        {"file": "Silver1.mp3", "speaker": "Silver"},
+        {"file": "Lpk2.mp3", "speaker": "Lpk"},
+        {"file": "Lelio2.mp3", "speaker": "Lelio"},
+        {"file": "Silver2.mp3", "speaker": "Silver"}
+    ]
+}
