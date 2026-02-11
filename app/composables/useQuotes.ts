@@ -1,72 +1,77 @@
-import type { ProfileKey, AudioItem } from '../../types/quotes'
-import quotesDataRaw from '../../assets/data/quotes.json'
 import { ref, onMounted } from 'vue'
 
-// On force TypeScript à reconnaître la structure du JSON
-const quotesData = quotesDataRaw as Record<ProfileKey, AudioItem[]>;
+// 1. On définit l'interface EXACTE de tes données (plus de "any")
+interface Quote {
+  file: string;
+  speaker: string;
+  image: string;
+}
 
-export const useQuotes = (profile: ProfileKey) => {
-    // 1. La phrase que l'on affiche à l'écran
-    const currentAudio = ref<AudioItem | null>(null)
+// 2. On importe le fichier. 
+// @ts-ignore (On dit à TS de se calmer si le module JSON n'est pas strictement reconnu)
+import quotesDataRaw from '../../assets/data/quotes.json'
 
-    // 2. Liste des index déjà vu pour CE profil
+export const useQuotes = (profileName: string) => {
+    // 3. On "Force" le typage : on dit que le JSON est un dictionnaire de listes de "Quote"
+    const data = quotesDataRaw as Record<string, Quote[]>
+
+    // 4. On type la variable réactive avec notre interface
+    const currentQuote = ref<Quote | null>(null)
+    
     const seenIndexes = ref<number[]>([])
+    const storageKey = `seen_${profileName}`
 
-    // Clé unique pour le LocalStorage
-    const storageKey = `quotes_seen_${profile}`
-
-    // --- LOGIQUE : SAUVEGARDER ---
-    const saveToStorage = () => {
-        localStorage.setItem(storageKey, JSON.stringify(seenIndexes.value))
-    }
-
-    // --- LOGIQUE : TIRAGE AU SORT ---
     const getNextQuote = () => {
-        const allItems = quotesData[profile]
+        // SÉCURITÉ : Si le profil (ex: "Asuu") n'existe pas dans le JSON
+        if (!data || !data[profileName]) {
+            console.warn(`Profil introuvable dans le JSON : ${profileName}`)
+            // Objet de secours vide pour éviter le crash
+            currentQuote.value = { 
+                speaker: "Erreur", 
+                file: "", 
+                image: "" 
+            }
+            return
+        }
 
-        // 1. Trouver les index qui ne sont pas encore dans SeenIndexes
+        const allItems = data[profileName]
+
+        // Filtrer les messages déjà vus
         let availableIndexes = allItems
-            .map((_, index: number) => index)
-            .filter((index: number) => !seenIndexes.value.includes(index))
+            .map((_, index) => index)
+            .filter((index) => !seenIndexes.value.includes(index))
 
-        // 2. Si tous les index ont été vus, on réinitialise
+        // Reset si tout est vu
         if (availableIndexes.length === 0) {
             seenIndexes.value = []
-            localStorage.removeItem(storageKey)
-            // Après reset, tous les index sont disponibles à nouveau
-            availableIndexes = allItems.map((_, index: number) => index)
+            availableIndexes = allItems.map((_, index) => index)
+            if (typeof window !== 'undefined') localStorage.removeItem(storageKey)
         }
-        
-        // 3. Tirer un index au hasard parmi les disponibles
-        const randomIndexInAvailable = Math.floor(Math.random() * availableIndexes.length)
-        const chosenIndex = availableIndexes[randomIndexInAvailable]
 
-        // 4. Mettre à jour l'état et sauvegarder
-        if (typeof chosenIndex === 'number') {
-            const nextItem = allItems[chosenIndex]
-                
-            // On vérifie que l'objet existe bien dans le tableau avant de l'assigner
-            if (nextItem) {
-                currentAudio.value = nextItem // On stocke l'objet { file, speaker }
-                seenIndexes.value.push(chosenIndex)
-                saveToStorage()
+        // Tirage au sort
+        if (availableIndexes.length > 0) {
+            const randomIndex = Math.floor(Math.random() * availableIndexes.length)
+            const chosenIndex = availableIndexes[randomIndex]
+
+            currentQuote.value = allItems[chosenIndex]
+            seenIndexes.value.push(chosenIndex)
+
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(storageKey, JSON.stringify(seenIndexes.value))
             }
         }
     }
 
-    // --- LOGIQUE : INITIALISATION ---
-    // OnMounted s'assure que le code s'exécute côté client sur le navigateur
     onMounted(() => {
         const saved = localStorage.getItem(storageKey)
         if (saved) {
-            seenIndexes.value = JSON.parse(saved)
+            try { seenIndexes.value = JSON.parse(saved) } catch (e) { seenIndexes.value = [] }
         }
-        // Tirer la première citation dès le montage
         getNextQuote()
     })
 
     return {
-        currentAudio,
+        currentQuote,
         getNextQuote
     }
 }

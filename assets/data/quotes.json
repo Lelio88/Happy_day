@@ -1,18 +1,25 @@
 {
-    "Asu": [
-        {"file": "Silver1.mp3", "speaker": "Silver"},
-        {"file": "Lpk1.mp3", "speaker": "Lpk"},
-        {"file": "Lelio1.mp3", "speaker": "Lelio"},
-        {"file": "Silver2.mp3", "speaker": "Silver"},
-        {"file": "Lpk2.mp3", "speaker": "Lpk"},
-        {"file": "Lelio2.mp3", "speaker": "Lelio"}
-    ],
-    "Lpk": [
-        {"file": "Lpk1.mp3", "speaker": "Lpk"},
-        {"file": "Lelio1.mp3", "speaker": "Lelio"},
-        {"file": "Silver1.mp3", "speaker": "Silver"},
-        {"file": "Lpk2.mp3", "speaker": "Lpk"},
-        {"file": "Lelio2.mp3", "speaker": "Lelio"},
-        {"file": "Silver2.mp3", "speaker": "Silver"}
-    ]
+  "Asuu": [
+    {
+      "file": "/lpk_1.mp3",
+      "speaker": "Léo-Pol",
+      "image": "/lpk.jpg"
+    },
+    {
+      "file": "/lelio_1.mp3",
+      "speaker": "Lelio",
+      "image": "/lelio.jpg"
+    },
+    {
+      "file": "/didier_1.mp3",
+      "speaker": "Didier",
+      "image": "/didier.jpg"
+    },
+    {
+      "file": "/gyllou_1.mp3",
+      "speaker": "Gyllou",
+      "image": "/gyllou.jpg"
+    }
+
+  ]
 }

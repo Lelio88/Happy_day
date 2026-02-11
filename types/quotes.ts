@@ -1,4 +1,4 @@
-export type ProfileKey = "Asu" | "Lpk";
+export type ProfileKey = "Asu";
 
 export interface AudioItem {
     file: string;
@@ -7,5 +7,4 @@ export interface AudioItem {
 
 export interface QuoteData {
     Asu: AudioItem[];
-    Lpk: AudioItem[];
 }
