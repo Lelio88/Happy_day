@@ -33,7 +33,7 @@ const goToSurprise = () => {
   <div class="landing-page">
     
     <button @click="goToSurprise" class="surprise-btn">
-       🕯️
+      🕯️
     </button>
 
     <div class="background-layer" :class="{ 'focus-mode': isTransitioning }"></div>
