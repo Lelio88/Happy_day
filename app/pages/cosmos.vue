@@ -104,6 +104,10 @@ const updateProgress = () => {
   }
 }
 
+const onLoadedMetadata = () => {
+  if (audioPlayer.value) audioPlayer.value.volume = voiceVolume.value
+}
+
 const onEnded = () => { isPlaying.value = false; progress.value = 0 }
 
 // --- LIFECYCLE ---
@@ -190,6 +194,7 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
             :src="currentQuote?.file" 
             @timeupdate="updateProgress" 
             @ended="onEnded"
+            @loadedmetadata="onLoadedMetadata"
             :volume="voiceVolume"
           ></audio>
         </div>
@@ -241,20 +246,21 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
   -webkit-appearance: none;
   width: 4px;
   height: 80px;
-  background: #EAEAEA;
+  background: rgba(168, 132, 243, 0.3);
   border-radius: 2px;
   outline: none;
-  writing-mode: bt-lr; /* Orientation verticale standard */
-  appearance: slider-vertical; /* Pour certains navigateurs */
+  writing-mode: bt-lr;
+  appearance: slider-vertical;
 }
 
 .voice-v-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   background: var(--purple-primary);
   border-radius: 50%;
   cursor: pointer;
+  border: 2px solid white;
 }
 
 /* --- HOTSPOT INVISIBLE --- */

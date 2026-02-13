@@ -189,7 +189,7 @@ body {
   -webkit-appearance: none;
   width: 100px;
   height: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(168, 132, 243, 0.3); /* Violet translucide pour le rail */
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -197,12 +197,12 @@ body {
 
 .v-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  background: white;
+  width: 16px; /* Taille augmentée */
+  height: 16px;
+  background: #a884f3; /* Violet opaque pour le bouton */
   border-radius: 50%;
   box-shadow: 0 0 5px rgba(0,0,0,0.5);
-  border: none;
+  border: 2px solid white;
   transition: transform 0.1s;
 }
 

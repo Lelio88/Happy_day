@@ -26,6 +26,7 @@ const updateProgress = () => {
     if (audioPlayer.value) {
         currentTime.value = audioPlayer.value.currentTime
         duration.value = audioPlayer.value.duration
+        audioPlayer.value.volume = voiceVolume.value
     }
 }
 
@@ -192,18 +193,19 @@ onUnmounted(() => {
     appearance: slider-vertical;
     width: 4px;
     height: 90px;
-    background: #ccc;
+    background: rgba(168, 132, 243, 0.3);
     border-radius: 2px;
     outline: none;
 }
 
 .voice-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  background: #42b883;
+  width: 16px;
+  height: 16px;
+  background: #a884f3;
   border-radius: 50%;
   cursor: pointer;
+  border: 2px solid white;
 }
 
 .container {
