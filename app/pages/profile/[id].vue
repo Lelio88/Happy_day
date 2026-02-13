@@ -7,6 +7,7 @@ const colorMode = useColorMode();
 const profileId = route.params.id as ProfileKey;
 
 const { currentAudio, getNextQuote } = useQuotes(profileId);
+const voiceVolume = useState('voiceVolume', () => 0.8)
 
 const toggleDark = () => {
     colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
@@ -16,6 +17,10 @@ const audioPlayer = ref<HTMLAudioElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const currentTime = ref(0)
 const duration = ref(0)
+
+watch(voiceVolume, (newVol) => {
+    if (audioPlayer.value) audioPlayer.value.volume = newVol
+})
 
 const updateProgress = () => {
     if (audioPlayer.value) {
@@ -122,7 +127,25 @@ onUnmounted(() => {
                 @loadedmetadata="updateProgress"
                 @play="initVisualizer"
                 style="display: none;" 
+                :volume="voiceVolume"
             ></audio>
+            
+            <div class="voice-control-box">
+                <div class="voice-vol-expand">
+                    <span class="voice-icon">🎙️</span>
+                    <div class="slider-wrapper">
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="1" 
+                            step="0.05" 
+                            v-model.number="voiceVolume"
+                            class="voice-slider"
+                        >
+                    </div>
+                </div>
+            </div>
+
             <div class="progress-container">
                 <div class="progress-bar" :style="{ width: (duration ? (currentTime / duration * 100) : 0) + '%' }"></div>
             </div>
@@ -133,6 +156,55 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+
+.voice-control-box {
+    margin-top: 10px;
+}
+
+.voice-vol-expand {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 5px;
+    border-radius: 20px;
+    cursor: pointer;
+    position: relative;
+    width: 35px;
+}
+
+.slider-wrapper {
+    height: 0;
+    width: 100%;
+    overflow: hidden;
+    transition: height 0.3s ease;
+    display: flex;
+    justify-content: center;
+}
+
+.voice-vol-expand:hover .slider-wrapper {
+    height: 100px;
+    margin-bottom: 5px;
+}
+
+.voice-slider {
+    -webkit-appearance: none;
+    appearance: slider-vertical;
+    width: 4px;
+    height: 90px;
+    background: #ccc;
+    border-radius: 2px;
+    outline: none;
+}
+
+.voice-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #42b883;
+  border-radius: 50%;
+  cursor: pointer;
+}
 
 .container {
     min-height: 100vh;

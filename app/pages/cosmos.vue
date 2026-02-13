@@ -10,10 +10,13 @@ const showEasterEgg = ref(false)
 
 // --- GESTION AUDIO BAR (Local) ---
 const isGlobalMuted = useState('isGlobalMuted') 
+const sfxVolume = useState('sfxVolume', () => 0.5)
+const voiceVolume = useState('voiceVolume', () => 0.8)
 const barAmbience = ref<HTMLAudioElement | null>(null)
 
-watch(isGlobalMuted, (muted) => {
+watch([isGlobalMuted, sfxVolume], ([muted, vol]) => {
   if (barAmbience.value) {
+    barAmbience.value.volume = (vol as number) * 0.1
     if (muted) barAmbience.value.pause()
     else barAmbience.value.play().catch(() => {})
   }
@@ -23,8 +26,9 @@ const handleBack = () => {
   isLeaving.value = true
   if (barAmbience.value) {
     const audio = barAmbience.value
+    const startVol = audio.volume
     const fadeInterval = setInterval(() => {
-      if (audio.volume > 0.01) audio.volume -= 0.01
+      if (audio.volume > 0.01) audio.volume -= startVol / 20
       else { audio.volume = 0; audio.pause(); clearInterval(fadeInterval) }
     }, 50)
   }
@@ -77,6 +81,10 @@ const audioPlayer = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
 const progress = ref(0)
 
+watch(voiceVolume, (newVol) => {
+  if (audioPlayer.value) audioPlayer.value.volume = newVol
+})
+
 const togglePlay = () => {
   if (!audioPlayer.value) return
   if (audioPlayer.value.paused) { audioPlayer.value.play(); isPlaying.value = true }
@@ -101,7 +109,7 @@ const onEnded = () => { isPlaying.value = false; progress.value = 0 }
 // --- LIFECYCLE ---
 onMounted(() => {
   if (barAmbience.value) {
-    barAmbience.value.volume = 0.005 
+    barAmbience.value.volume = (sfxVolume.value || 0.5) * 0.1 
     if (!isGlobalMuted.value) barAmbience.value.play().catch(e => console.log("Autoplay Bar bloqué", e))
   }
 })
@@ -159,10 +167,31 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
 
         <div class="audio-player-custom white-theme">
           <button @click="togglePlay" class="play-button">{{ isPlaying ? '❚❚' : '▶' }}</button>
+          
+          <div class="voice-volume-control">
+            <div class="voice-icon">🎙️</div>
+            <div class="voice-slider-wrapper">
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.05" 
+                v-model.number="voiceVolume"
+                class="voice-v-slider"
+              >
+            </div>
+          </div>
+
           <div class="progress-bar-container">
             <div class="progress-bar-fill" :style="{ width: progress + '%' }"></div>
           </div>
-          <audio ref="audioPlayer" :src="currentQuote?.file" @timeupdate="updateProgress" @ended="onEnded"></audio>
+          <audio 
+            ref="audioPlayer" 
+            :src="currentQuote?.file" 
+            @timeupdate="updateProgress" 
+            @ended="onEnded"
+            :volume="voiceVolume"
+          ></audio>
         </div>
       </section>
 
@@ -172,6 +201,61 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+/* --- VOLUME VOIX --- */
+.voice-volume-control {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  width: 30px;
+}
+
+.voice-icon {
+  font-size: 1.2rem;
+  z-index: 2;
+  background: var(--white-off);
+  padding: 5px 0;
+}
+
+.voice-slider-wrapper {
+  height: 0;
+  width: 30px;
+  overflow: hidden;
+  transition: height 0.3s ease;
+  display: flex;
+  justify-content: center;
+  position: absolute;
+  bottom: 30px;
+  background: var(--white-off);
+  border-radius: 10px 10px 0 0;
+}
+
+.voice-volume-control:hover .voice-slider-wrapper {
+  height: 100px;
+  padding: 10px 0;
+}
+
+.voice-v-slider {
+  -webkit-appearance: none;
+  width: 4px;
+  height: 80px;
+  background: #EAEAEA;
+  border-radius: 2px;
+  outline: none;
+  writing-mode: bt-lr; /* Orientation verticale standard */
+  appearance: slider-vertical; /* Pour certains navigateurs */
+}
+
+.voice-v-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--purple-primary);
+  border-radius: 50%;
+  cursor: pointer;
+}
 
 /* --- HOTSPOT INVISIBLE --- */
 .cat-hotspot {

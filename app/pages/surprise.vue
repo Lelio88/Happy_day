@@ -44,7 +44,7 @@ onMounted(() => {
           isLeaving.value = true
           
           setTimeout(() => {
-             router.push('/')
+            router.push('/')
           }, 1000)
 
         }, 6000)
