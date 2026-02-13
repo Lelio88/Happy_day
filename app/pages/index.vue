@@ -41,7 +41,7 @@ const goToSurprise = () => {
     <main :class="{ 'fade-out': isTransitioning }">
       
       <div class="intro-box">
-        <h1>Cosmos & Chats</h1>
+        <h1>Cosmos & Chats</h1>   
         <p>
           Bienvenue dans ton café Cosmos & Chats !<br>
           Un endroit tout doux pour écouter des messages tout pipou !
