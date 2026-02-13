@@ -164,35 +164,30 @@ onUnmounted(() => {
 
 .voice-vol-expand {
     display: flex;
-    flex-direction: column-reverse;
     align-items: center;
     background: rgba(0, 0, 0, 0.05);
-    padding: 5px;
+    padding: 5px 10px;
     border-radius: 20px;
     cursor: pointer;
-    position: relative;
-    width: 35px;
 }
 
 .slider-wrapper {
-    height: 0;
-    width: 100%;
+    width: 0;
     overflow: hidden;
-    transition: height 0.3s ease;
+    transition: width 0.3s ease;
     display: flex;
-    justify-content: center;
+    align-items: center;
 }
 
 .voice-vol-expand:hover .slider-wrapper {
-    height: 100px;
-    margin-bottom: 5px;
+    width: 100px;
+    margin-left: 10px;
 }
 
 .voice-slider {
     -webkit-appearance: none;
-    appearance: slider-vertical;
-    width: 4px;
-    height: 90px;
+    width: 90px;
+    height: 4px;
     background: rgba(168, 132, 243, 0.3);
     border-radius: 2px;
     outline: none;

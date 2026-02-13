@@ -1,12 +1,92 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const isLeaving = ref(false)
+const activeTab = ref<'lovers' | 'friends'>('friends')
 
 // --- EASTER EGG (Le Chat de Nessrine) ---
 const showEasterEgg = ref(false)
+
+// --- LOGIQUE DES ONGLETS ET QUOTES ---
+interface Quote { file: string; speaker: string; image?: string; text?: string; }
+// @ts-ignore
+import quotesDataRaw from '../../assets/data/quotes.json'
+
+// Gestion de l'import JSON (Vite/Nuxt)
+const quotesData = (quotesDataRaw as any).default || quotesDataRaw
+const data = quotesData as Record<string, Quote[]>
+const currentQuote = ref<Quote | null>(null)
+
+// Gestion Amoureux (Lpk) - Séquentiel
+const loversIndex = ref(0)
+const loversQuotes = data['Lpk'] || []
+
+// Gestion Amis - Aléatoire
+const friendsPool = [...(data['Lelio'] || []), ...(data['Didier'] || []), ...(data['Gyllou'] || []), ...(data['Silver'] || [])]
+const seenFriendsIndexes = ref<number[]>([])
+
+const counterDisplay = computed(() => {
+  if (activeTab.value === 'lovers') {
+    const total = loversQuotes.length
+    // Comme loversIndex est incrémenté APRÈS le choix de la quote dans loadNextQuote,
+    // l'index affiché correspond à la valeur actuelle de loversIndex (si != 0) ou au total (si == 0).
+    const current = total === 0 ? 0 : (loversIndex.value === 0 ? total : loversIndex.value)
+    return `${current} / ${total}`
+  } else {
+    const total = friendsPool.length
+    const current = seenFriendsIndexes.value.length
+    return `${current} / ${total}`
+  }
+})
+
+const stopAudio = () => {
+  if (audioPlayer.value) {
+    audioPlayer.value.pause()
+    audioPlayer.value.currentTime = 0
+    isPlaying.value = false
+    progress.value = 0
+  }
+}
+
+const loadNextQuote = () => {
+  if (activeTab.value === 'lovers') {
+    if (loversQuotes.length > 0) {
+      currentQuote.value = { ...loversQuotes[loversIndex.value] }
+      loversIndex.value = (loversIndex.value + 1) % loversQuotes.length
+      localStorage.setItem('cosmos_lovers_index', loversIndex.value.toString())
+    }
+  } else {
+    if (friendsPool.length > 0) {
+      let available = friendsPool.map((_, i) => i).filter(i => !seenFriendsIndexes.value.includes(i))
+      if (available.length === 0) {
+        seenFriendsIndexes.value = []
+        available = friendsPool.map((_, i) => i)
+      }
+      const randomIndex = available[Math.floor(Math.random() * available.length)]
+      currentQuote.value = { ...friendsPool[randomIndex] }
+      seenFriendsIndexes.value.push(randomIndex)
+    }
+  }
+  
+  if (audioPlayer.value) {
+    audioPlayer.value.pause()
+    audioPlayer.value.load()
+    isPlaying.value = false
+    progress.value = 0
+  }
+}
+
+const switchTab = (tab: 'lovers' | 'friends') => {
+  if (activeTab.value === tab) return
+  stopAudio()
+  activeTab.value = tab
+  if (tab === 'friends' && seenFriendsIndexes.value.length >= friendsPool.length) {
+    seenFriendsIndexes.value = []
+  }
+  loadNextQuote()
+}
 
 // --- GESTION AUDIO BAR (Local) ---
 const isGlobalMuted = useState('isGlobalMuted') 
@@ -24,6 +104,7 @@ watch([isGlobalMuted, sfxVolume], ([muted, vol]) => {
 
 const handleBack = () => {
   isLeaving.value = true
+  stopAudio()
   if (barAmbience.value) {
     const audio = barAmbience.value
     const startVol = audio.volume
@@ -35,48 +116,6 @@ const handleBack = () => {
   setTimeout(() => { router.push('/') }, 1000)
 }
 
-// --- LOGIQUE QUOTES ---
-interface Quote { file: string; speaker: string; image?: string; text?: string; }
-// @ts-ignore
-import quotesDataRaw from '../../assets/data/quotes.json'
-
-const useQuotes = (profileName: string) => {
-    const data = quotesDataRaw as Record<string, Quote[]>
-    const currentQuote = ref<Quote | null>(null)
-    const seenIndexes = ref<number[]>([])
-    const storageKey = `seen_${profileName}`
-
-    const getNextQuote = () => {
-        if (!data || !data[profileName]) {
-            currentQuote.value = { speaker: "Erreur", file: "", text: "Profil introuvable", image: "" }
-            return
-        }
-        const allItems = data[profileName]
-        let availableIndexes = allItems.map((_, index) => index).filter((index) => !seenIndexes.value.includes(index))
-
-        if (availableIndexes.length === 0) {
-            seenIndexes.value = []
-            availableIndexes = allItems.map((_, index) => index)
-            if (typeof window !== 'undefined') localStorage.removeItem(storageKey)
-        }
-
-        if (availableIndexes.length > 0) {
-            const randomIndex = Math.floor(Math.random() * availableIndexes.length)
-            const chosenIndex = availableIndexes[randomIndex]
-            currentQuote.value = allItems[chosenIndex]
-            seenIndexes.value.push(chosenIndex)
-            if (typeof window !== 'undefined') localStorage.setItem(storageKey, JSON.stringify(seenIndexes.value))
-        }
-    }
-    onMounted(() => {
-        const saved = localStorage.getItem(storageKey)
-        if (saved) try { seenIndexes.value = JSON.parse(saved) } catch (e) { seenIndexes.value = [] }
-        getNextQuote()
-    })
-    return { currentQuote, getNextQuote }
-}
-
-const { currentQuote, getNextQuote } = useQuotes('Asuu')
 const audioPlayer = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
 const progress = ref(0)
@@ -92,10 +131,8 @@ const togglePlay = () => {
 }
 
 const handleNext = () => {
-  getNextQuote()
-  isPlaying.value = false
-  progress.value = 0
-  setTimeout(() => { if (audioPlayer.value) audioPlayer.value.load() }, 50)
+  stopAudio()
+  loadNextQuote()
 }
 
 const updateProgress = () => {
@@ -112,10 +149,14 @@ const onEnded = () => { isPlaying.value = false; progress.value = 0 }
 
 // --- LIFECYCLE ---
 onMounted(() => {
+  const savedIndex = localStorage.getItem('cosmos_lovers_index')
+  if (savedIndex) loversIndex.value = parseInt(savedIndex)
+
   if (barAmbience.value) {
     barAmbience.value.volume = (sfxVolume.value || 0.5) * 0.1 
     if (!isGlobalMuted.value) barAmbience.value.play().catch(e => console.log("Autoplay Bar bloqué", e))
   }
+  loadNextQuote() 
 })
 onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
 </script>
@@ -125,8 +166,10 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
     
     <audio ref="barAmbience" src="/bar.mp3" loop></audio>
 
+    <!-- Hotspot Bibou (Zone cliquable sur le chat du fond) -->
     <div class="cat-hotspot" @click="showEasterEgg = true" title="Miaou ?"></div>
 
+    <!-- Modale Bibou -->
     <div v-if="showEasterEgg" class="easter-egg-modal" @click="showEasterEgg = false">
         <div class="easter-egg-content">
             <img src="/nessrine_cat.jpg" alt="Le chat de Nessrine" />
@@ -140,9 +183,10 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
 
     <div class="content-wrapper" :class="{ 'fade-out': isLeaving }">
       
-      <section class="profile-card pixel-box white-theme">
+      <section class="profile-card pixel-box white-theme" :class="{ 'lovers-card': activeTab === 'lovers' }">
         <div class="cat-container">
-            <div class="cat">
+            <div class="cat" :class="{ 'cat-lovers': activeTab === 'lovers' }">
+                <div class="heart-overlay" v-if="activeTab === 'lovers'">❤️</div>
                 <div class="head">
                     <div class="ears"><div class="ear left"></div><div class="ear right"></div></div>
                     <div class="eyes"><div class="eye left"></div><div class="eye right"></div></div>
@@ -155,18 +199,28 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
             </div>
         </div>
 
-        <h2 class="user-name">{{ currentQuote?.speaker || 'Cosmos' }}</h2>
+        <h2 class="user-name">{{ activeTab === 'lovers' ? 'Mon Amoureux' : 'Mes Amis' }}</h2>
+        <p class="speaker-name-sub" v-if="currentQuote?.speaker">✨ {{ currentQuote.speaker }} ✨</p>
         
-        <button @click="handleNext" class="next-button pixel-button">
+        <button @click="handleNext" class="next-button pixel-button" :class="{ 'pink-button': activeTab === 'lovers' }">
           <span class="heart-icon">♥</span> Next
         </button>
       </section>
 
-      <section class="message-box pixel-box glass-theme">
-        <h3 class="message-title">Un message de :</h3>
-        <div class="sender-avatar-placeholder">
-           <img v-if="currentQuote?.image" :src="currentQuote.image" alt="Avatar" class="pixel-avatar"/>
-           <div v-else class="pixel-art-icon">🐱</div>
+      <section class="message-box pixel-box" :class="activeTab === 'lovers' ? 'lovers-theme' : 'glass-theme'">
+        <div class="tabs-container">
+          <button @click="switchTab('lovers')" class="tab-btn" :class="{ active: activeTab === 'lovers' }">🎀 Amoureux</button>
+          <button @click="switchTab('friends')" class="tab-btn" :class="{ active: activeTab === 'friends' }">🤝 Amis</button>
+        </div>
+        <div class="message-header">
+          <h3 class="message-title">Un message de :</h3>
+          <div class="quote-counter">{{ counterDisplay }}</div>
+        </div>
+        <div class="sender-info">
+           <div class="sender-avatar-placeholder">
+              <img v-if="currentQuote?.image" :src="currentQuote.image" alt="Avatar" class="pixel-avatar" :class="{ 'heart-border': activeTab === 'lovers' }"/>
+              <div v-else class="pixel-art-icon">🐱</div>
+           </div>
         </div>
 
         <div class="audio-player-custom white-theme">
@@ -207,50 +261,173 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
+/* --- ONGLETS --- */
+.tabs-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(168, 132, 243, 0.3);
+  color: white;
+  padding: 8px;
+  font-family: var(--pixel-font);
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: var(--purple-primary);
+  border-color: white;
+  box-shadow: 0 0 10px rgba(168, 132, 243, 0.5);
+}
+
+.tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* --- THEME AMOUREUX --- */
+.lovers-theme {
+  background: linear-gradient(135deg, rgba(255, 105, 180, 0.4), rgba(220, 20, 60, 0.4)) !important;
+  border: 2px solid #ff69b4 !important;
+  box-shadow: 0 0 20px rgba(255, 105, 180, 0.5) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.lovers-theme::before {
+  content: '❤️';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  font-size: 5rem;
+  opacity: 0.1;
+  transform: rotate(20deg);
+}
+
+.lovers-card {
+  border: 3px solid #ff69b4 !important;
+  background-color: #fff0f5 !important;
+}
+
+.pink-button {
+  background-color: #ff69b4 !important;
+  box-shadow: 3px 3px 0px rgba(220, 20, 60, 0.4) !important;
+}
+
+.heart-border {
+  border: 3px solid #ff69b4 !important;
+  box-shadow: 0 0 15px rgba(255, 105, 180, 0.6) !important;
+}
+
+.sender-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding: 10px 0;
+}
+
+.sender-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.pixel-avatar {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 15px;
+  border: 3px solid var(--purple-primary);
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+}
+
+.speaker-name-sub {
+  font-size: 1.5rem;
+  color: var(--purple-primary);
+  margin: -10px 0 10px 0;
+  text-align: center;
+  z-index: 5;
+  position: relative;
+}
+
+.lovers-card .speaker-name-sub {
+  color: #ff69b4;
+  text-shadow: 0 0 5px rgba(255, 105, 180, 0.3);
+}
+
+/* --- CAT LOVERS --- */
+.cat-lovers .head, .cat-lovers .body, .cat-lovers .paw, .cat-lovers .tail-segment {
+  background-color: #ff69b4 !important;
+}
+
+.cat-lovers .ear {
+  border-bottom-color: #ff69b4 !important;
+}
+
+.heart-overlay {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  animation: floatHeart 2s infinite ease-in-out;
+}
+
+@keyframes floatHeart {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-10px); }
+}
+
 /* --- VOLUME VOIX --- */
 .voice-volume-control {
   display: flex;
-  flex-direction: column-reverse;
   align-items: center;
   cursor: pointer;
   position: relative;
-  width: 30px;
+  height: 30px;
 }
 
 .voice-icon {
   font-size: 1.2rem;
   z-index: 2;
   background: var(--white-off);
-  padding: 5px 0;
+  padding: 0 5px;
 }
 
 .voice-slider-wrapper {
-  height: 0;
-  width: 30px;
+  width: 0;
   overflow: hidden;
-  transition: height 0.3s ease;
+  transition: width 0.3s ease;
   display: flex;
-  justify-content: center;
-  position: absolute;
-  bottom: 30px;
-  background: var(--white-off);
-  border-radius: 10px 10px 0 0;
+  align-items: center;
 }
 
 .voice-volume-control:hover .voice-slider-wrapper {
-  height: 100px;
-  padding: 10px 0;
+  width: 80px;
+  margin-left: 5px;
 }
 
 .voice-v-slider {
   -webkit-appearance: none;
-  width: 4px;
-  height: 80px;
+  width: 70px;
+  height: 4px;
   background: rgba(168, 132, 243, 0.3);
   border-radius: 2px;
   outline: none;
-  writing-mode: bt-lr;
-  appearance: slider-vertical;
 }
 
 .voice-v-slider::-webkit-slider-thumb {
@@ -266,13 +443,12 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
 /* --- HOTSPOT INVISIBLE --- */
 .cat-hotspot {
     position: absolute;
-    bottom: 10px;
+    bottom: 20px;
     left: 150px;
-    width: 400px;  /* Largeur estimée du chat sur le fond */
-    height: 200px; /* Hauteur estimée */
-    z-index: 5;    /* Au dessus du fond, mais en dessous du reste */
-    cursor: help;  /* Curseur point d'interrogation pour l'indice */
-    /*background: rgba(255, 0, 0, 0.3);*/
+    width: 400px;
+    height: 200px;
+    z-index: 100;
+    cursor: help;
 }
 
 /* --- MODALE EASTER EGG --- */
@@ -350,18 +526,50 @@ onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
 .back-button { position: absolute; top: 20px; left: 20px; background: var(--white-off); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: var(--purple-primary); box-shadow: 3px 3px 0px rgba(0,0,0,0.2); border: 2px solid var(--purple-primary); z-index: 10; }
 .clickable { cursor: pointer; transition: transform 0.1s; }
 .clickable:active { transform: scale(0.95); }
-.content-wrapper { display: flex; width: 90%; max-width: 1000px; gap: 30px; align-items: flex-end; height: 60vh; }
-.pixel-box { border-radius: var(--border-radius-pixel); box-shadow: 4px 4px 0px rgba(0,0,0,0.2); }
+.content-wrapper { display: flex; width: 95%; max-width: 1200px; gap: 30px; align-items: center; height: 80vh; }
+.pixel-box { border-radius: var(--border-radius-pixel); box-shadow: 6px 6px 0px rgba(0,0,0,0.2); }
 .white-theme { background-color: var(--white-off); color: var(--text-dark); }
 .glass-theme { background-color: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 2px solid rgba(168, 132, 243, 0.3); }
-.profile-card { width: 300px; height: 550px; flex-shrink: 0; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; margin-bottom: 20px; overflow: hidden; }
+.profile-card { width: 260px; height: 45vh; flex-shrink: 0; padding: 30px 15px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; overflow: hidden; }
 .user-name { font-size: 2.5rem; text-transform: uppercase; line-height: 1.1; z-index: 5; position: relative; margin: auto 0; width: 100%; word-wrap: break-word; }
 .pixel-button { background-color: var(--purple-primary); color: white; border: none; padding: 10px 25px; font-family: var(--pixel-font); font-size: 1.4rem; border-radius: 25px; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 3px 3px 0px rgba(0,0,0,0.3); transition: transform 0.1s; z-index: 5; position: relative; }
 .pixel-button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px rgba(0,0,0,0.3); }
-.message-box { flex-grow: 1; height: 100%; padding: 30px; display: flex; flex-direction: column; }
-.message-title { font-size: 2rem; margin-bottom: 10px; }
-.sender-avatar-placeholder { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; margin-bottom: 15px; }
-.pixel-avatar { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; border: 2px solid var(--purple-primary); box-shadow: 2px 2px 0px rgba(0,0,0,0.2); }
+.message-box { 
+  flex-grow: 1; 
+  padding: 30px; 
+  display: flex; 
+  flex-direction: column; 
+  min-width: 0; 
+  height: 100%; 
+  max-height: 100%; 
+  overflow: hidden; 
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.quote-counter {
+  font-family: var(--pixel-font);
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 10px;
+  border-radius: 6px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.lovers-theme .quote-counter {
+  color: #ff69b4;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 5px rgba(255, 105, 180, 0.2);
+}
+
+.message-title { font-size: 2rem; margin: 0; }
 .audio-player-custom { display: flex; align-items: center; padding: 15px 20px; border-radius: 40px; gap: 15px; margin-top: auto; }
 .play-button { background: none; border: none; color: var(--purple-primary); font-size: 1.5rem; cursor: pointer; width: 30px; padding: 0; display: flex; justify-content: center; }
 .progress-bar-container { flex-grow: 1; height: 12px; background-color: #EAEAEA; border-radius: 6px; overflow: hidden; }
