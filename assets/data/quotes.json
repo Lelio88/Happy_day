@@ -4,10 +4,10 @@
     { "file": "/lpk_2.mp3", "speaker": "Léo-Pol", "image": "/lpk.jpg" },
     { "file": "/lpk_3.mp3", "speaker": "Léo-Pol", "image": "/lpk.jpg" },
     { "file": "/lpk_4.mp3", "speaker": "Léo-Pol", "image": "/lpk.jpg" },
-    { "file": "/lelio_1.mp3", "speaker": "Lelio", "image": "/lelio.jpg" },
-    { "file": "/lelio_2.mp3", "speaker": "Lelio", "image": "/lelio.jpg" },
-    { "file": "/lelio_3.mp3", "speaker": "Lelio", "image": "/lelio.jpg" },
-    { "file": "/lelio_4.mp3", "speaker": "Lelio", "image": "/lelio.jpg" },
+    { "file": "/lelio_1.mp3", "speaker": "Lelio", "image": "/lelio.png" },
+    { "file": "/lelio_2.mp3", "speaker": "Lelio", "image": "/lelio.png" },
+    { "file": "/lelio_3.mp3", "speaker": "Lelio", "image": "/lelio.png" },
+    { "file": "/lelio_4.mp3", "speaker": "Lelio", "image": "/lelio.png" },
     { "file": "/didier_1.mp3", "speaker": "Didier", "image": "/didier.jpg" },
     { "file": "/gyllou_1.mp3", "speaker": "Gyllou", "image": "/gyllou.jpg" },
     { "file": "/silver_1.mp3", "speaker": "Silver", "image": "/silver.png" },
@@ -21,10 +21,10 @@
     { "file": "/lpk_4.mp3", "speaker": "Léo-Pol", "image": "/lpk_4.jpeg" }
   ],
   "Lelio": [
-    { "file": "/lelio_1.mp3", "speaker": "Lelio", "image": "/lelio.jpg" },
-    { "file": "/lelio_2.mp3", "speaker": "Lelio", "image": "/lelio.jpg" },
-    { "file": "/lelio_3.mp3", "speaker": "Lelio", "image": "/lelio.jpg" },
-    { "file": "/lelio_4.mp3", "speaker": "Lelio", "image": "/lelio.jpg" }
+    { "file": "/lelio_1.mp3", "speaker": "Lelio", "image": "/lelio.png" },
+    { "file": "/lelio_2.mp3", "speaker": "Lelio", "image": "/lelio.png" },
+    { "file": "/lelio_3.mp3", "speaker": "Lelio", "image": "/lelio.png" },
+    { "file": "/lelio_4.mp3", "speaker": "Lelio", "image": "/lelio.png" }
   ],
   "Didier": [
     { "file": "/didier_1.mp3", "speaker": "Didier", "image": "/didier.jpg" }
@@ -33,9 +33,9 @@
     { "file": "/gyllou_1.mp3", "speaker": "Gyllou", "image": "/gyllou.jpg" }
   ],
   "Silver": [
-    { "file": "/silver_1.mp3", "speaker": "Silver", "image": "/silver.jpg" },
-    { "file": "/silver_2.mp3", "speaker": "Silver", "image": "/silver.jpg" },
-    { "file": "/silver_3.mp3", "speaker": "Silver", "image": "/silver.jpg" }
+    { "file": "/silver_1.mp3", "speaker": "Silver", "image": "/silver.png" },
+    { "file": "/silver_2.mp3", "speaker": "Silver", "image": "/silver.png" },
+    { "file": "/silver_3.mp3", "speaker": "Silver", "image": "/silver.png" }
   ],
   "Misaki": [
     { "file": "/misaki_1.mp3", "speaker": "Misaki", "image": "/misaki.png" },
