@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const isTransitioning = ref(false)
 
-// ... imports existants ...
+// Injection de la commande de musique globale
+const playGlobalMusic = inject('playGlobalMusic', () => Promise.resolve())
 
-// On récupère la commande globale pour lancer la musique
+// On récupère la commande globale pour lancer la musique (State)
 const shouldPlayMusic = useState('shouldPlayMusic')
 
 const enterWorld = () => {
-  // 1. ON LANCE LA MUSIQUE GLOBALE ICI
+  // 1. ON LANCE LA MUSIQUE GLOBALE ICI (Geste utilisateur direct)
   shouldPlayMusic.value = true 
+  playGlobalMusic()
   
   // 2. Animation de transition classique
   isTransitioning.value = true

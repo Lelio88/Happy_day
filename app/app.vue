@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, provide } from 'vue'
 
 // --- ÉTAT GLOBAL ---
 const bgMusicVolume = useState('bgMusicVolume', () => 0.03)
@@ -7,6 +7,19 @@ const sfxVolume = useState('sfxVolume', () => 0.5)
 const voiceVolume = useState('voiceVolume', () => 0.8)
 const isGlobalMuted = useState('isGlobalMuted', () => false)
 const globalMusicPlayer = ref<HTMLAudioElement | null>(null)
+
+// Fonction exposée pour lancer la musique depuis n'importe où (ex: index.vue)
+const playGlobalMusic = () => {
+  if (globalMusicPlayer.value) {
+    globalMusicPlayer.value.volume = isGlobalMuted.value ? 0 : bgMusicVolume.value
+    // On retourne la promesse pour permettre au caller d'attendre si besoin
+    return globalMusicPlayer.value.play().catch((e) => {
+      console.warn("Impossible de lancer la musique globale :", e)
+    })
+  }
+  return Promise.resolve()
+}
+provide('playGlobalMusic', playGlobalMusic)
 
 // Chargement initial depuis le localStorage
 onMounted(() => {
@@ -25,11 +38,23 @@ onMounted(() => {
     updateMusicState()
 
     const unlockAudio = () => {
+      // On tente de jouer seulement si nécessaire
       if (!isGlobalMuted.value && globalMusicPlayer.value?.paused) {
-        globalMusicPlayer.value.play().catch(() => {})
+        globalMusicPlayer.value.play()
+          .then(() => {
+            // Si succès, on n'a plus besoin d'écouter les clics
+            document.removeEventListener('click', unlockAudio)
+          })
+          .catch((e) => {
+            // Si échec (toujours bloqué ?), on continue d'écouter
+            // console.debug("Tentative de déblocage audio échouée, on réessaiera au prochain clic.", e)
+          })
+      } else if (!globalMusicPlayer.value?.paused) {
+        // Déjà en lecture, on nettoie
         document.removeEventListener('click', unlockAudio)
       }
     }
+    // On écoute sur tout le document pour capturer n'importe quelle interaction
     document.addEventListener('click', unlockAudio)
   }
 })
@@ -111,7 +136,7 @@ const toggleGlobalMute = () => {
 
     <NuxtPage />
 
-    <audio ref="globalMusicPlayer" src="/music.mp3" loop></audio>
+    <audio ref="globalMusicPlayer" src="/music.mp3" loop autoplay></audio>
   </div>
 </template>
 

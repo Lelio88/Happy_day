@@ -219,6 +219,13 @@ const onLoadedMetadata = () => {
 
 const onEnded = () => { isPlaying.value = false; progress.value = 0 }
 
+// Fonction de secours pour débloquer l'audio au premier clic
+const unlockAudioContext = () => {
+  if (barAmbience.value && barAmbience.value.paused && !isGlobalMuted.value && sfxVolume.value > 0) {
+    barAmbience.value.play().catch(() => {})
+  }
+}
+
 // --- LIFECYCLE ---
 onMounted(() => {
   const savedIndex = localStorage.getItem('cosmos_lovers_index')
@@ -246,14 +253,21 @@ onMounted(() => {
   
   // On charge l'état actuel SANS avancer au suivant au démarrage
   loadNextQuote(true) 
+  
+  // Écouteur global pour débloquer l'audio
+  document.addEventListener('click', unlockAudioContext)
 })
-onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
+
+onUnmounted(() => { 
+    if(barAmbience.value) barAmbience.value.pause() 
+    document.removeEventListener('click', unlockAudioContext)
+})
 </script>
 
 <template>
-  <div class="main-container" :class="{ 'blur-mode': isLeaving }">
+  <div class="main-container" :class="{ 'blur-mode': isLeaving }" @click="unlockAudioContext">
     
-    <audio ref="barAmbience" src="/bar.mp3" loop></audio>
+    <audio ref="barAmbience" src="/bar.mp3" loop autoplay></audio>
 
     <!-- Hotspot Bibou (Zone cliquable sur le chat du fond) -->
     <div class="cat-hotspot" @click="showEasterEgg = true" title="Miaou ?"></div>
