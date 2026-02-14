@@ -10,9 +10,9 @@
     { "file": "/lelio_4.mp3", "speaker": "Lelio", "image": "/lelio.jpg" },
     { "file": "/didier_1.mp3", "speaker": "Didier", "image": "/didier.jpg" },
     { "file": "/gyllou_1.mp3", "speaker": "Gyllou", "image": "/gyllou.jpg" },
-    { "file": "/silver_1.mp3", "speaker": "Silver", "image": "/silver.jpg" },
-    { "file": "/silver_2.mp3", "speaker": "Silver", "image": "/silver.jpg" },
-    { "file": "/silver_3.mp3", "speaker": "Silver", "image": "/silver.jpg" }
+    { "file": "/silver_1.mp3", "speaker": "Silver", "image": "/silver.png" },
+    { "file": "/silver_2.mp3", "speaker": "Silver", "image": "/silver.png" },
+    { "file": "/silver_3.mp3", "speaker": "Silver", "image": "/silver.png" }
   ],
   "Lpk": [
     { "file": "/lpk_1.mp3", "speaker": "Léo-Pol", "image": "/lpk.jpeg" },
