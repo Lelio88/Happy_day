@@ -36,5 +36,16 @@
     { "file": "/silver_1.mp3", "speaker": "Silver", "image": "/silver.jpg" },
     { "file": "/silver_2.mp3", "speaker": "Silver", "image": "/silver.jpg" },
     { "file": "/silver_3.mp3", "speaker": "Silver", "image": "/silver.jpg" }
+  ],
+  "Misaki": [
+    { "file": "/misaki_1.mp3", "speaker": "Misaki", "image": "/misaki.png" },
+    { "file": "/misaki_2.mp3", "speaker": "Misaki", "image": "/misaki.png" }
+  ],
+  "Misachinoise": [
+    { "file": "/misachinoise_1.mp3", "speaker": "Misachinoise", "image": "/misachinoise.png" },
+    { "file": "/misachinoise_2.mp3", "speaker": "Misachinoise", "image": "/misachinoise.png" }
+  ],
+  "Misanamatata": [
+    { "file": "/misanamatata.mov", "speaker": "Misanamatata", "image": "/misanamatata.png" }
   ]
 }

@@ -24,7 +24,15 @@ const loversIndex = ref(0)
 const loversQuotes = data['Lpk'] || []
 
 // Gestion Amis - Aléatoire
-const friendsPool = [...(data['Lelio'] || []), ...(data['Didier'] || []), ...(data['Gyllou'] || []), ...(data['Silver'] || [])]
+const friendsPool = [
+  ...(data['Lelio'] || []), 
+  ...(data['Didier'] || []), 
+  ...(data['Gyllou'] || []), 
+  ...(data['Silver'] || []),
+  ...(data['Misaki'] || []),
+  ...(data['Misachinoise'] || []),
+  ...(data['Misanamatata'] || [])
+]
 const seenFriendsIndexes = ref<number[]>([])
 
 const counterDisplay = computed(() => {
