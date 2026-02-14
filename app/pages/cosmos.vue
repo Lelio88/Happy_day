@@ -23,29 +23,59 @@ const currentQuote = ref<Quote | null>(null)
 const loversIndex = ref(0)
 const loversQuotes = data['Lpk'] || []
 
-// Gestion Amis - Aléatoire
-const friendsPool = [
-  ...(data['Lelio'] || []), 
-  ...(data['Didier'] || []), 
-  ...(data['Gyllou'] || []), 
-  ...(data['Silver'] || []),
-  ...(data['Misaki'] || []),
-  ...(data['Misachinoise'] || []),
-  ...(data['Misanamatata'] || [])
-]
-const seenFriendsIndexes = ref<number[]>([])
+// Gestion Amis - Séquentiel par Ami (Ordre Amis Aléatoire)
+const friendKeys = ['Lelio', 'Didier', 'Gyllou', 'Silver', 'Misaki', 'Misachinoise', 'Misanamatata']
+const friendsOrder = ref<string[]>([])
+const currentFriendIdx = ref(0)
+const currentFriendQuoteIdx = ref(0)
+
+// Utilitaire de mélange (Fisher-Yates)
+const shuffleArray = (array: string[]) => {
+  const arr = [...array]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+// Calcul du total des messages amis pour le compteur
+const totalFriendsMessages = computed(() => {
+  return friendKeys.reduce((acc, key) => acc + (data[key]?.length || 0), 0)
+})
 
 const counterDisplay = computed(() => {
   if (activeTab.value === 'lovers') {
-    const total = loversQuotes.length
-    // Comme loversIndex est incrémenté APRÈS le choix de la quote dans loadNextQuote,
-    // l'index affiché correspond à la valeur actuelle de loversIndex (si != 0) ou au total (si == 0).
-    const current = total === 0 ? 0 : (loversIndex.value === 0 ? total : loversIndex.value)
-    return `${current} / ${total}`
+    return `${loversIndex.value + 1} / ${loversQuotes.length}`
   } else {
-    const total = friendsPool.length
-    const current = seenFriendsIndexes.value.length
-    return `${current} / ${total}`
+    // Calcul de la progression globale dans le cycle actuel
+    let seenCount = 0
+    
+    // 1. Ajouter tous les messages des amis DÉJÀ passés dans l'ordre actuel
+    for (let i = 0; i < currentFriendIdx.value; i++) {
+      const friendName = friendsOrder.value[i]
+      if (friendName && data[friendName]) {
+        seenCount += data[friendName].length
+      }
+    }
+    
+    // 2. Ajouter les messages vus de l'ami ACTUEL (index + 1 car l'index commence à 0)
+    // On cape à la taille max si jamais l'index dépasse (cas limite chargement)
+    const currentFriendName = friendsOrder.value[currentFriendIdx.value]
+    if (currentFriendName && data[currentFriendName]) {
+        const currentFriendTotal = data[currentFriendName].length
+        // L'affichage est "Combien j'en ai vu", donc si on est à l'index 0, on en a vu 1 (celui affiché)
+        // SAUF si on vient d'initialiser et qu'on n'a pas encore "passé" le message ? 
+        // Non, la logique existante montre "1 / X" dès le début.
+        // Mais ici `currentFriendQuoteIdx` est l'index EN COURS de lecture.
+        // Donc on a vu (ou on voit) index + 1 messages de cet ami.
+        seenCount += (currentFriendQuoteIdx.value + 1)
+    }
+
+    // Petit fix cosmétique : si on est au tout début (0,0), on affiche 1
+    if (seenCount === 0 && totalFriendsMessages.value > 0) seenCount = 1
+    
+    return `${seenCount} / ${totalFriendsMessages.value}`
   }
 })
 
@@ -58,23 +88,59 @@ const stopAudio = () => {
   }
 }
 
-const loadNextQuote = () => {
+const saveFriendsState = () => {
+  const state = {
+    order: friendsOrder.value,
+    fIdx: currentFriendIdx.value,
+    qIdx: currentFriendQuoteIdx.value
+  }
+  localStorage.setItem('cosmos_friends_state', JSON.stringify(state))
+}
+
+const loadNextQuote = (isInit = false) => {
   if (activeTab.value === 'lovers') {
     if (loversQuotes.length > 0) {
-      currentQuote.value = { ...loversQuotes[loversIndex.value] }
-      loversIndex.value = (loversIndex.value + 1) % loversQuotes.length
-      localStorage.setItem('cosmos_lovers_index', loversIndex.value.toString())
+        // Si c'est l'init, on ne passe pas au suivant, on charge juste le courant sauvegardé/initial
+        if (!isInit) {
+            loversIndex.value = (loversIndex.value + 1) % loversQuotes.length
+            localStorage.setItem('cosmos_lovers_index', loversIndex.value.toString())
+        }
+        currentQuote.value = { ...loversQuotes[loversIndex.value] }
     }
   } else {
-    if (friendsPool.length > 0) {
-      let available = friendsPool.map((_, i) => i).filter(i => !seenFriendsIndexes.value.includes(i))
-      if (available.length === 0) {
-        seenFriendsIndexes.value = []
-        available = friendsPool.map((_, i) => i)
-      }
-      const randomIndex = available[Math.floor(Math.random() * available.length)]
-      currentQuote.value = { ...friendsPool[randomIndex] }
-      seenFriendsIndexes.value.push(randomIndex)
+    // Logique Amis : Ami Aléatoire -> Séquentiel -> Ami Suivant
+    
+    // Si ce n'est pas l'initialisation, on avance
+    if (!isInit) {
+        currentFriendQuoteIdx.value++
+        
+        const currentFriendKey = friendsOrder.value[currentFriendIdx.value]
+        const currentFriendQuotes = data[currentFriendKey] || []
+
+        // Si on a dépassé les citations de l'ami en cours
+        if (currentFriendQuoteIdx.value >= currentFriendQuotes.length) {
+            currentFriendQuoteIdx.value = 0
+            currentFriendIdx.value++
+            
+            // Si on a fait tous les amis, on re-mélange
+            if (currentFriendIdx.value >= friendsOrder.value.length) {
+                currentFriendIdx.value = 0
+                friendsOrder.value = shuffleArray(friendKeys)
+            }
+        }
+        saveFriendsState()
+    }
+
+    // Chargement de la quote
+    const friendKey = friendsOrder.value[currentFriendIdx.value]
+    if (friendKey && data[friendKey] && data[friendKey].length > 0) {
+        // Sécurité si l'index est hors bornes (ex: changement JSON)
+        if (currentFriendQuoteIdx.value >= data[friendKey].length) currentFriendQuoteIdx.value = 0
+        
+        currentQuote.value = { ...data[friendKey][currentFriendQuoteIdx.value] }
+    } else {
+        // Fallback si données vides
+        currentQuote.value = { file: '', speaker: 'Personne', image: '' }
     }
   }
   
@@ -90,10 +156,8 @@ const switchTab = (tab: 'lovers' | 'friends') => {
   if (activeTab.value === tab) return
   stopAudio()
   activeTab.value = tab
-  if (tab === 'friends' && seenFriendsIndexes.value.length >= friendsPool.length) {
-    seenFriendsIndexes.value = []
-  }
-  loadNextQuote()
+  // On recharge l'état actuel (sans avancer)
+  loadNextQuote(true)
 }
 
 // --- GESTION AUDIO BAR (Local) ---
@@ -160,11 +224,28 @@ onMounted(() => {
   const savedIndex = localStorage.getItem('cosmos_lovers_index')
   if (savedIndex) loversIndex.value = parseInt(savedIndex)
 
+  // Restauration de l'état des amis
+  const savedFriendsState = localStorage.getItem('cosmos_friends_state')
+  if (savedFriendsState) {
+    try {
+        const parsed = JSON.parse(savedFriendsState)
+        friendsOrder.value = parsed.order || shuffleArray(friendKeys)
+        currentFriendIdx.value = parsed.fIdx || 0
+        currentFriendQuoteIdx.value = parsed.qIdx || 0
+    } catch (e) {
+        friendsOrder.value = shuffleArray(friendKeys)
+    }
+  } else {
+    friendsOrder.value = shuffleArray(friendKeys)
+  }
+
   if (barAmbience.value) {
     barAmbience.value.volume = (sfxVolume.value || 0.5) * 0.1 
     if (!isGlobalMuted.value) barAmbience.value.play().catch(e => console.log("Autoplay Bar bloqué", e))
   }
-  loadNextQuote() 
+  
+  // On charge l'état actuel SANS avancer au suivant au démarrage
+  loadNextQuote(true) 
 })
 onUnmounted(() => { if(barAmbience.value) barAmbience.value.pause() })
 </script>
